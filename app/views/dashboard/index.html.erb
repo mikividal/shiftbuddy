@@ -1,0 +1,248 @@
+<div class="container-fluid">
+  <!-- Header del Dashboard -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1>📋 ShiftBuddy - Dashboard de Radiología</h1>
+      <p class="lead">Bienvenido, <strong><%= current_user.full_name %></strong>
+        <% if current_user.resident? %>
+          (<%= current_user.training_level %> - <%= current_user.current_rotation&.humanize %>)
+        <% end %>
+      </p>
+    </div>
+  </div>
+
+  <!-- Alertas STAT -->
+  <% if @stat_cases.any? %>
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="alert alert-danger">
+          <h4 class="alert-heading">🚨 CASOS STAT PENDIENTES (<%= @stat_cases.count %>)</h4>
+          <% @stat_cases.each do |stat_case| %>
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded">
+              <div>
+                <strong><%= stat_case.modality %> <%= stat_case.body_part %></strong> - <%= stat_case.patient_name %>
+                <br><small class="text-muted"><%= stat_case.clinical_history %></small>
+              </div>
+              <div>
+                <span class="badge badge-danger"><%= time_ago_in_words(stat_case.created_at) %> ago</span>
+                <%= link_to "Ver Caso", stat_case, class: "btn btn-danger btn-sm ml-2" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Estadísticas del Día -->
+  <div class="row mb-4">
+    <div class="col-md-2">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-primary"><%= @daily_stats[:cases_read] %></h3>
+          <small>Casos Leídos Hoy</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-success"><%= @daily_stats[:reports_completed] %></h3>
+          <small>Reportes Completados</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-info"><%= @daily_stats[:avg_report_time] %> min</h3>
+          <small>Tiempo Promedio</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-warning"><%= @daily_stats[:pending_stat_cases] %></h3>
+          <small>STAT Pendientes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-secondary"><%= @daily_stats[:total_pending] %></h3>
+          <small>Total Pendientes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-dark"><%= @daily_stats[:hours_worked] %>h</h3>
+          <small>Horas Trabajadas</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Columna Izquierda: Casos Urgentes -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>⚡ Casos Urgentes Pendientes</h5>
+        </div>
+        <div class="card-body">
+          <% if @urgent_cases.any? %>
+            <% @urgent_cases.each do |urgent_case| %>
+              <div class="border rounded p-2 mb-2">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <strong><%= urgent_case.display_name %></strong>
+                    <br><small class="text-muted"><%= urgent_case.clinical_history %></small>
+                  </div>
+                  <div>
+                    <span class="badge badge-warning">URGENT</span>
+                    <%= link_to "Leer", urgent_case, class: "btn btn-primary btn-sm ml-1" %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted">No hay casos urgentes pendientes</p>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Casos en Progreso -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5>🔄 Casos en Progreso</h5>
+        </div>
+        <div class="card-body">
+          <% if @cases_in_progress.any? %>
+            <% @cases_in_progress.each do |case_in_progress| %>
+              <div class="border rounded p-2 mb-2">
+                <strong><%= case_in_progress.display_name %></strong>
+                <span class="badge badge-primary ml-2">EN PROGRESO</span>
+                <%= link_to "Continuar", case_in_progress, class: "btn btn-success btn-sm float-right" %>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted">No hay casos en progreso</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna Derecha: Tareas y Procedimientos -->
+    <div class="col-md-6">
+      <!-- Tareas Pendientes -->
+      <div class="card">
+        <div class="card-header">
+          <h5>📝 Reportes Pendientes</h5>
+        </div>
+        <div class="card-body">
+          <% if @pending_reports.any? %>
+            <% @pending_reports.each do |task| %>
+              <div class="border rounded p-2 mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="<%= task.task_type_icon %>"></span>
+                    <%= task.display_name %>
+                    <% if task.overdue? %>
+                      <span class="badge badge-danger ml-1">VENCIDO</span>
+                    <% end %>
+                  </div>
+                  <div>
+                    <span class="badge <%= task.priority_badge_class %>"><%= task.priority.upcase %></span>
+                    <%= link_to "Hacer", task, class: "btn btn-outline-primary btn-sm ml-1" %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted">No hay reportes pendientes</p>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Procedimientos Pendientes -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5>💉 Procedimientos Programados</h5>
+        </div>
+        <div class="card-body">
+          <% if @pending_procedures.any? %>
+            <% @pending_procedures.each do |procedure| %>
+              <div class="border rounded p-2 mb-2">
+                <strong><%= procedure.title %></strong>
+                <br><small class="text-muted">Estimado: <%= procedure.estimated_time %> min</small>
+                <span class="badge badge-info float-right">PROGRAMADO</span>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted">No hay procedimientos programados</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acceso Rápido -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>🚀 Acceso Rápido</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <%= link_to teaching_cases_path, class: "btn btn-info btn-lg btn-block" do %>
+                🎓 Casos de Enseñanza
+                <span class="badge badge-light"><%= @teaching_count %></span>
+              <% end %>
+            </div>
+            <div class="col-md-3">
+              <%= link_to qa_cases_path, class: "btn btn-warning btn-lg btn-block" do %>
+                🔍 Casos para QA
+                <span class="badge badge-light"><%= @qa_count %></span>
+              <% end %>
+            </div>
+            <div class="col-md-3">
+              <%= link_to worklist_path, class: "btn btn-primary btn-lg btn-block" do %>
+                📋 Lista de Trabajo
+              <% end %>
+            </div>
+            <div class="col-md-3">
+              <%= link_to stats_path, class: "btn btn-success btn-lg btn-block" do %>
+                📊 Estadísticas
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.card {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 1rem;
+}
+
+.badge-danger { background-color: #dc3545; }
+.badge-warning { background-color: #ffc107; color: #212529; }
+.badge-primary { background-color: #007bff; }
+.badge-success { background-color: #28a745; }
+.badge-info { background-color: #17a2b8; }
+.badge-light { background-color: #f8f9fa; color: #212529; }
+.badge-secondary { background-color: #6c757d; }
+
+.alert-danger {
+  border-left: 5px solid #dc3545;
+}
+</style>

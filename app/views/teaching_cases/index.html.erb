@@ -1,0 +1,144 @@
+<!-- app/views/teaching_cases/index.html.erb -->
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1>🎓 Mi Biblioteca de Casos de Enseñanza</h1>
+    </div>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-primary"><%= @total_teaching_cases %></h3>
+          <small>Total de Casos</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-success"><%= @modalities_count %></h3>
+          <small>Modalidades Diferentes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-info"><%= Date.current.strftime("%B %Y") %></h3>
+          <small>Período Actual</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Casos por Modalidad -->
+  <% if @cases_by_modality.any? %>
+    <% @cases_by_modality.each do |modality, cases| %>
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h4>📊 <%= modality %> (<%= cases.count %> casos)</h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <% cases.each do |teaching_case| %>
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-info">
+                      <div class="card-body">
+                        <h6 class="card-title">
+                          <span class="badge badge-info"><%= teaching_case.modality %></span>
+                          <%= teaching_case.body_part %>
+                        </h6>
+                        <p class="card-text">
+                          <strong>Paciente:</strong> <%= teaching_case.patient_name %><br>
+                          <strong>Fecha:</strong> <%= teaching_case.study_date.strftime("%d/%m/%Y") if teaching_case.study_date %><br>
+                          <strong>Prioridad:</strong>
+                          <span class="badge badge-<%= teaching_case.priority == 'stat' ? 'danger' : teaching_case.priority == 'urgent' ? 'warning' : 'secondary' %>">
+                            <%= teaching_case.priority.upcase %>
+                          </span>
+                        </p>
+
+                        <!-- Mostrar notas de enseñanza -->
+                        <% teaching_task = teaching_case.tasks.marked_for_teaching.first %>
+                        <% if teaching_task&.notes_for_teaching.present? %>
+                          <div class="alert alert-light p-2 mt-2">
+                            <small><strong>📝 Notas:</strong><br>
+                            <span class="text-wrap"><%= teaching_task.notes_for_teaching %></span></small>
+                          </div>
+                        <% end %>
+
+                        <div class="d-flex justify-content-between">
+                          <%= link_to "Ver Caso", teaching_case, class: "btn btn-primary btn-sm" %>
+                          <%= link_to "Detalles", teaching_case_path(teaching_case), class: "btn btn-info btn-sm" %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body text-center">
+            <h4>📚 No tienes casos marcados para enseñanza aún</h4>
+            <p class="text-muted">Cuando encuentres casos interesantes durante tu trabajo, márcalos para enseñanza y aparecerán aquí.</p>
+            <%= link_to "Ver Lista de Trabajo", worklist_path, class: "btn btn-primary" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Acciones Rápidas Simplificadas -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>🚀 Acciones Rápidas</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <%= link_to worklist_path, class: "btn btn-outline-primary btn-block mb-2" do %>
+                <i class="fas fa-search me-2"></i>Buscar Más Casos
+              <% end %>
+            </div>
+            <div class="col-md-6">
+              <%= link_to qa_cases_path, class: "btn btn-outline-warning btn-block mb-2" do %>
+                <i class="fas fa-exclamation-triangle me-2"></i>Ver Casos QA
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.card {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.text-wrap {
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.alert {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+</style>

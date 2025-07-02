@@ -1,0 +1,143 @@
+<!-- app/views/qa_cases/index.html.erb -->
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1>🔍 Casos para Revisión de Calidad (QA)</h1>
+      <%= link_to "← Volver al Dashboard", root_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-warning"><%= @total_qa_cases %></h3>
+          <small>Total de Casos QA</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-danger"><%= @stat_qa_count %></h3>
+          <small>Casos STAT para QA</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h3 class="text-warning"><%= @urgent_qa_count %></h3>
+          <small>Casos Urgentes para QA</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Casos por Prioridad -->
+  <% if @cases_by_priority.any? %>
+    <% @cases_by_priority.each do |priority, cases| %>
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header bg-<%= priority == 'stat' ? 'danger' : priority == 'urgent' ? 'warning' : 'light' %>">
+              <h4>
+                <% if priority == 'stat' %>
+                  🚨 Casos STAT para QA (<%= cases.count %>)
+                <% elsif priority == 'urgent' %>
+                  ⚡ Casos Urgentes para QA (<%= cases.count %>)
+                <% else %>
+                  📄 Casos Rutina para QA (<%= cases.count %>)
+                <% end %>
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <% cases.each do |qa_case| %>
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-warning">
+                      <div class="card-body">
+                        <h6 class="card-title">
+                          <span class="badge badge-<%= qa_case.priority == 'stat' ? 'danger' : qa_case.priority == 'urgent' ? 'warning' : 'secondary' %>">
+                            <%= qa_case.priority.upcase %>
+                          </span>
+                          <%= qa_case.modality %> <%= qa_case.body_part %>
+                        </h6>
+                        <p class="card-text">
+                          <strong>Paciente:</strong> <%= qa_case.patient_name %><br>
+                          <strong>Fecha:</strong> <%= qa_case.study_date.strftime("%d/%m/%Y") if qa_case.study_date %><br>
+                          <strong>Historia:</strong> <%= truncate(qa_case.clinical_history, length: 60) %>
+                        </p>
+
+                        <!-- Mostrar notas de QA -->
+                        <% qa_task = qa_case.tasks.marked_for_qa.first %>
+                        <% if qa_task&.notes_for_qa.present? %>
+                          <div class="alert alert-warning p-2">
+                            <small><strong>⚠️ Motivo QA:</strong> <%= qa_task.notes_for_qa %></small>
+                          </div>
+                        <% end %>
+
+                        <div class="d-flex justify-content-between">
+                          <%= link_to "Ver Caso", qa_case, class: "btn btn-primary btn-sm" %>
+                          <%= link_to "Revisar QA", qa_case_path(qa_case), class: "btn btn-warning btn-sm" %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body text-center">
+            <h4>🔍 No tienes casos marcados para QA aún</h4>
+            <p class="text-muted">Cuando encuentres discrepancias o casos problemáticos, márcalos para revisión de calidad y aparecerán aquí.</p>
+            <%= link_to "Ver Lista de Trabajo", worklist_path, class: "btn btn-primary" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Acciones Rápidas -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>🚀 Acciones</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <%= link_to worklist_path, class: "btn btn-outline-primary btn-block" do %>
+                📋 Lista de Trabajo
+              <% end %>
+            </div>
+            <div class="col-md-3">
+              <%= link_to teaching_cases_path, class: "btn btn-outline-info btn-block" do %>
+                🎓 Casos de Enseñanza
+              <% end %>
+            </div>
+            <div class="col-md-3">
+              <%= link_to root_path, class: "btn btn-outline-success btn-block" do %>
+                🏠 Dashboard
+              <% end %>
+            </div>
+            <div class="col-md-3">
+              <%= link_to stats_path, class: "btn btn-outline-secondary btn-block" do %>
+                📊 Estadísticas
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

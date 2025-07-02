@@ -1,0 +1,227 @@
+<!-- app/views/cases/show.html.erb -->
+<div class="container-fluid">
+  <!-- Header del Caso -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <h1>
+        <span class="badge badge-<%= @case.priority == 'stat' ? 'danger' : @case.priority == 'urgent' ? 'warning' : 'secondary' %>">
+          <%= @case.priority.upcase %>
+        </span>
+        <%= @case.display_name %>
+      </h1>
+      <p class="lead">
+        <strong>Acceso:</strong> <%= @case.accession_number %> |
+        <strong>MRN:</strong> <%= @case.patient_mrn %>
+      </p>
+    </div>
+    <div class="col-md-4 text-right">
+      <%= link_to "← Lista de Trabajo", worklist_path, class: "btn btn-outline-secondary" %>
+      <% if @case.pending? %>
+        <%= link_to "🚀 Iniciar Lectura", start_reading_case_path(@case), method: :patch, class: "btn btn-primary btn-lg" %>
+      <% elsif @case.in_progress? %>
+        <%= link_to "✅ Completar Lectura", complete_reading_case_path(@case), method: :patch, class: "btn btn-success btn-lg" %>
+      <% else %>
+        <span class="badge badge-success badge-lg">COMPLETADO</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Información del Caso -->
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5>📋 Información del Caso</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p><strong>Modalidad:</strong> <%= @case.modality %></p>
+              <p><strong>Parte del Cuerpo:</strong> <%= @case.body_part %></p>
+              <p><strong>Fecha del Estudio:</strong> <%= @case.study_date.strftime("%d/%m/%Y %H:%M") if @case.study_date %></p>
+              <p><strong>Estado:</strong>
+                <span class="badge badge-<%= @case.study_status == 'pending' ? 'light' : @case.study_status == 'in_progress' ? 'primary' : 'success' %>">
+                  <%= @case.study_status.humanize %>
+                </span>
+              </p>
+            </div>
+            <div class="col-md-6">
+              <p><strong>Residente Asignado:</strong> <%= @case.user.full_name %></p>
+              <% if @case.attending.present? %>
+                <p><strong>Supervisor:</strong> <%= @case.attending.full_name %></p>
+              <% end %>
+              <p><strong>Creado:</strong> <%= time_ago_in_words(@case.created_at) %> ago</p>
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6>🏥 Historia Clínica:</h6>
+              <div class="alert alert-light">
+                <%= @case.clinical_history || "Sin historia clínica especificada" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tareas Relacionadas -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5>📝 Tareas del Caso</h5>
+        </div>
+        <div class="card-body">
+          <% if @related_tasks.any? %>
+            <% @related_tasks.each do |task| %>
+              <div class="border rounded p-3 mb-3">
+                <div class="row">
+                  <div class="col-md-8">
+                    <h6>
+                      <%= task.task_type_icon %> <%= task.display_name %>
+                      <span class="badge <%= task.status_badge_class %>"><%= task.status.humanize %></span>
+                    </h6>
+                    <% if task.description.present? %>
+                      <p class="text-muted"><%= task.description %></p>
+                    <% end %>
+
+                    <!-- Mostrar hallazgos si existen -->
+                    <% if task.findings.present? %>
+                      <div class="mt-2">
+                        <strong>Hallazgos:</strong>
+                        <div class="alert alert-info p-2">
+                          <%= task.findings %>
+                        </div>
+                      </div>
+                    <% end %>
+
+                    <!-- Mostrar impresión si existe -->
+                    <% if task.impression.present? %>
+                      <div class="mt-2">
+                        <strong>Impresión:</strong>
+                        <div class="alert alert-success p-2">
+                          <%= task.impression %>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="col-md-4 text-right">
+                    <p class="mb-1">
+                      <strong>Prioridad:</strong>
+                      <span class="badge <%= task.priority_badge_class %>"><%= task.priority.upcase %></span>
+                    </p>
+                    <% if task.due_date.present? %>
+                      <p class="mb-1">
+                        <small class="text-muted">
+                          <strong>Vence:</strong> <%= task.due_date.strftime("%d/%m %H:%M") %>
+                          <% if task.overdue? %>
+                            <span class="badge badge-danger">VENCIDO</span>
+                          <% end %>
+                        </small>
+                      </p>
+                    <% end %>
+                    <% if task.time_spent > 0 %>
+                      <p class="mb-1">
+                        <small class="text-muted"><strong>Tiempo:</strong> <%= task.time_spent %> min</small>
+                      </p>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted">No hay tareas asignadas a este caso aún.</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Lateral: Acciones -->
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5>🔧 Acciones del Caso</h5>
+        </div>
+        <div class="card-body">
+          <!-- Marcar para Enseñanza -->
+          <div class="mb-3">
+            <% if @case.tasks.any?(&:marked_for_teaching?) %>
+              <div class="alert alert-info">
+                <strong>🎓 Marcado para enseñanza</strong>
+                <br><small><%= @case.tasks.marked_for_teaching.first&.notes_for_teaching %></small>
+              </div>
+            <% else %>
+              <%= form_with url: mark_for_teaching_case_path(@case), method: :patch, local: true do |f| %>
+                <div class="form-group">
+                  <%= f.text_area :teaching_notes, placeholder: "¿Por qué es interesante este caso?", class: "form-control", rows: 2 %>
+                </div>
+                <%= f.submit "🎓 Marcar para Enseñanza", class: "btn btn-info btn-block" %>
+              <% end %>
+            <% end %>
+          </div>
+
+          <!-- Marcar para QA -->
+          <div class="mb-3">
+            <% if @case.tasks.any?(&:marked_for_qa?) %>
+              <div class="alert alert-warning">
+                <strong>🔍 Marcado para QA</strong>
+                <br><small><%= @case.tasks.marked_for_qa.first&.notes_for_qa %></small>
+              </div>
+            <% else %>
+              <%= form_with url: mark_for_qa_case_path(@case), method: :patch, local: true do |f| %>
+                <div class="form-group">
+                  <%= f.text_area :qa_notes, placeholder: "Motivo de revisión de calidad", class: "form-control", rows: 2 %>
+                </div>
+                <%= f.submit "🔍 Marcar para QA", class: "btn btn-warning btn-block" %>
+              <% end %>
+            <% end %>
+          </div>
+
+          <!-- Estado del Caso -->
+          <div class="mb-3">
+            <h6>📊 Estado del Caso</h6>
+            <div class="progress">
+              <%
+                progress = case @case.study_status
+                          when 'pending' then 0
+                          when 'in_progress' then 50
+                          when 'reported' then 75
+                          when 'signed' then 100
+                          end
+              %>
+              <div class="progress-bar bg-<%= progress == 100 ? 'success' : 'primary' %>"
+                   style="width: <%= progress %>%">
+                <%= progress %>%
+              </div>
+            </div>
+            <small class="text-muted">
+              <%= @case.study_status.humanize %>
+              <% if @case.updated_at != @case.created_at %>
+                (actualizado <%= time_ago_in_words(@case.updated_at) %> ago)
+              <% end %>
+            </small>
+          </div>
+
+          <!-- Navegación -->
+          <div class="mt-4">
+            <h6>🚀 Navegación</h6>
+            <%= link_to "📋 Lista de Trabajo", worklist_path, class: "btn btn-outline-primary btn-block mb-2" %>
+            <%= link_to "🏠 Dashboard", root_path, class: "btn btn-outline-secondary btn-block mb-2" %>
+            <% if @case.tasks.any?(&:marked_for_teaching?) %>
+              <%= link_to "🎓 Ver Casos de Enseñanza", teaching_cases_path, class: "btn btn-outline-info btn-block mb-2" %>
+            <% end %>
+            <% if @case.tasks.any?(&:marked_for_qa?) %>
+              <%= link_to "🔍 Ver Casos QA", qa_cases_path, class: "btn btn-outline-warning btn-block mb-2" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.badge-lg {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+}
+</style>
